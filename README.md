@@ -15,5 +15,6 @@ main.js中
 ## 示例
 [达达利亚](https://gzszd.xyz/assets/l2d/Tartaglia.html)
 [钟离](https://gzszd.xyz/assets/l2d/Zhongli.html)
+作者[来人啊给我退下](https://space.bilibili.com/13975947)
 ## 展望
 在琢磨怎么让同一个页面显示两个l2d，现在即使渲染开了两张画布，依然只有一张能工作。如果有dalao有头绪跪求赐教。
