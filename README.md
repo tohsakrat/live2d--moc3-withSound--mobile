@@ -5,6 +5,7 @@
 -  在[l2d-moc3](https://github.com/LitStronger/live2d-moc3)基础上：
 -   针对最近新live json文件的特性调整了原先代码loder中可能报错的地方。
 -   增加了对一些桌宠模型audio和text的支持。
+-   增加了对移动端触摸事件的支持。
 - 代码未压缩，如有需要可以自己打包一下。
 ## 参数
 
