@@ -1,4 +1,4 @@
-# llive2d--moc3-with-sound
+# llive2d--moc3-withSound -mobile
 - 项在于[l2d-moc3](https://github.com/LitStronger/live2d-moc3)修改。
 - 基于Live2D Cubism SDK for Web，你可以在[官方网站](https://www.live2d.com/zh-CHS/download/cubism-sdk/)上获得最新版本
 - [官方sdk文档](https://docs.live2d.com/cubism-sdk-manual/warning-for-cubism4-web-r1-update/)聊胜于无，主要还是靠自己读源码摸索着改。
