@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html >
+<head>
+    <meta charset="UTF-8">
+    <title>live2d-demo</title>
+    <script src="./jquery.min.js"></script>
+    <!-- Live2DCubismCore -->
+    <script src="./live2dcubismcore.js"></script>
+    <!-- Include Pixi. -->
+    <script src="./pixi.min.js"></script>
+    <!-- Include Cubism Components. -->
+    <script src="./live2dcubismframework.js"></script>
+    <script src="./live2dcubismpixi.js"></script>
+    <!-- User's Script -->
+    <script src="./l2d.js"></script>
+    <script src="./main.js"></script>
+    <style>
+    </style>
+</head>
+<body>
+    <!-- Canvas -->
+    <div class="gongzi"  id="L2dCanvas"></div>
+    <script>
+        var config = {
+            width: 1000,
+            height: 1000,
+            left: '0px',
+            bottom: '0px',
+			basePath: './l2dModel/',
+            role: 'gongzi',
+
+            background: '',
+            opacity: 1,
+            mobile: true
+        }
+        var v = new Viewer(config); 
+    </script>
+</body>
+</html>
