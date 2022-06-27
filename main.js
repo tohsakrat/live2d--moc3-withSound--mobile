@@ -10,14 +10,14 @@ class Viewer {
 		let bg = config.background
 		let opa = config.opacity
 		let mobile = config.mobile
-		
-		this.basePath = config.basePath+"/"
-		this.audio={}
-		this.role =config.role
-		
-		//if ( !mobile ) {
-		//	if ( this.isMobile() ) return;
-		//}
+
+		this.basePath = config.basePath + "/"
+		this.audio = {}
+		this.role = config.role
+
+		this.bodyMotions = []
+		this.idleMotions = [ 'idle' ]
+		this.clickMotions = []
 		this.l2d = new L2D( config.basePath );
 		this.canvas = $( "." + config.role );
 
@@ -30,7 +30,7 @@ class Viewer {
 		} );
 		this.canvas.html( this.app.view );
 		this.canvas[ 0 ].style.position = 'fixed'
-		
+		window.thisViewer = this;
 		if ( bg ) {
 			this.canvas[ 0 ].style.background = `url("${bg}")`
 			this.canvas[ 0 ].style.backgroundSize = 'cover'
@@ -65,25 +65,31 @@ class Viewer {
 			this.app.renderer.resize( width, height );
 
 			if ( this.model ) {
-				var short=Math.min(width,height)
-				this.model.position = new PIXI.Point( ( width*0.5 ), ( height*0.1) );
-				this.model.scale = new PIXI.Point( ( width*1), ( height*1 ) );
+				var short = Math.min( width, height )
+				this.model.position = new PIXI.Point( ( width * 0.5 ), ( height * 0.3 ) );
+				this.model.scale = new PIXI.Point( ( width * .8), ( height * .8) );
 				this.model.masks.resize( this.app.view.width, this.app.view.height );
-				console.log( this.model.position );
-				console.log( this.model.scale );
-				console.log( this.app.view.width );
-				console.log( this.app.view.height );
+				//console.log( this.model.position );
+				////console.log( this.model.scale );
+				//console.log( this.app.view.width );
+				//console.log( this.app.view.height );
 			}
 
 		};
 		this.isClick = false;
+		
+		
+		
+		
+		/* PC端事件*/
+		
 		this.app.view.addEventListener( 'mousedown', ( event ) => {
 			//console.log(event)
 			this.isClick = true;
 		} );
 
 		this.app.view.addEventListener( 'mousemove', ( event ) => {
-		
+
 			if ( this.model ) {
 				this.model.inDrag = true;
 			}
@@ -102,8 +108,8 @@ class Viewer {
 		} );
 
 		this.app.view.addEventListener( 'mouseup', ( event ) => {
-				 event.stopPropagation();
-				event.preventDefault();
+			event.stopPropagation();
+			event.preventDefault();
 			if ( !this.model ) {
 				return;
 			}
@@ -111,16 +117,15 @@ class Viewer {
 			//this.startAnimation( "touch_head", "gongping" );
 			if ( this.isClick ) {
 				if ( this.isHit( 'face', event.offsetX, event.offsetY ) ) {
-					this.startAnimation( "touch_head","base");
+					this.startAnimation( "touch_head", "base" );
 				} else if ( this.isHit( 'TouchSpecial', event.offsetX, event.offsetY ) ) {
 					this.startAnimation( "touch_special", "base" );
 				} else {
-            				    		
 
-					const bodyMotions =Array.from(this.model.motions,x=>x[0]);
-					console.log(bodyMotions)
-					let currentMotion = bodyMotions[ Math.floor( Math.random() * bodyMotions.length ) ];
-					this.startAnimation( currentMotion, "base");
+
+					this.loadMotionList();
+					let currentMotion = this.clickMotions[ Math.floor( Math.random() * this.clickMotions.length ) ];
+					this.startAnimation( currentMotion, "base" );
 				}
 			}
 
@@ -128,6 +133,8 @@ class Viewer {
 			this.model.inDrag = false;
 		} );
 
+
+/* 移动端事件*/
 		this.app.view.ontouchstart = ( event ) => {
 
 			console.log( 'tontouchstart' );
@@ -141,14 +148,14 @@ class Viewer {
 			}
 
 			if ( this.model ) {
-				let mouse_x = this.model.position.x - event.changedTouches[0].offsetX;
-				let mouse_y = this.model.position.y - event.changedTouches[0].offsetY;
+				let mouse_x = this.model.position.x - event.changedTouches[ 0 ].offsetX;
+				let mouse_y = this.model.position.y - event.changedTouches[ 0 ].offsetY;
 				this.model.pointerX = -mouse_x / this.app.view.height;
 				this.model.pointerY = -mouse_y / this.app.view.width;
 			}
 
-				 event.stopPropagation();
-				event.preventDefault();
+			event.stopPropagation();
+			event.preventDefault();
 		}
 
 		this.app.view.ontouchend = ( event ) => {
@@ -159,85 +166,89 @@ class Viewer {
 			}
 			this.isClick = true;
 
-			
+
 			if ( this.isClick ) {
-				if ( this.isHit( 'face', event.changedTouches[0].offsetX, event.changedTouches[0].offsetY ) ) {
+				if ( this.isHit( 'face', event.changedTouches[ 0 ].offsetX, event.changedTouches[ 0 ].offsetY ) ) {
 					this.startAnimation( "touch_head", "base" );
-				} else if ( this.isHit( 'TouchSpecial', event.changedTouches[0].offsetX, event.changedTouches[0].offsetY ) ) {
+				} else if ( this.isHit( 'TouchSpecial', event.changedTouches[ 0 ].offsetX, event.changedTouches[ 0 ].offsetY ) ) {
 					this.startAnimation( "touch_special", "base" );
 				} else {
-					const bodyMotions =Array.from(this.model.motions,x=>x[0]);
-					console.log(bodyMotions)
-					let currentMotion = bodyMotions[ Math.floor( Math.random() * bodyMotions.length ) ];
+					this.loadMotionList;
+					console.log( this.bodyMotions )
+					let currentMotion = this.clickMotions[ Math.floor( Math.random() * this.clickMotions.length ) ];
 					this.startAnimation( currentMotion, "base" );
 				}
 			}
 			this.isClick = false;
 			this.model.inDrag = false;
 		}
-this.app.view.addEventListener.ontouchcancel = ( event ) => {
-			
-				 event.stopPropagation();
-				event.preventDefault();
+		
+		this.app.view.addEventListener.ontouchcancel = ( event ) => {
+
+			event.stopPropagation();
+			event.preventDefault();
 			console.log( 'ontouchcancel' );
 			if ( !this.model ) {
 				return;
 			}
 			this.isClick = true;
 
-			
+
 			if ( this.isClick ) {
-				if ( this.isHit( 'face', event.changedTouches[0].offsetX, event.changedTouches[0].offsetY ) ) {
+				if ( this.isHit( 'face', event.changedTouches[ 0 ].offsetX, event.changedTouches[ 0 ].offsetY ) ) {
 					this.startAnimation( "touch_head", "base" );
-				} else if ( this.isHit( 'TouchSpecial', event.changedTouches[0].offsetX, event.changedTouches[0].offsetY ) ) {
+				} else if ( this.isHit( 'TouchSpecial', event.changedTouches[ 0 ].offsetX, event.changedTouches[ 0 ].offsetY ) ) {
 					this.startAnimation( "touch_special", "base" );
 				} else {
-					const bodyMotions =Array.from(this.model.motions,x=>x[0]);
-					console.log(bodyMotions)
-					let currentMotion = bodyMotions[ Math.floor( Math.random() * bodyMotions.length ) ];
+					this.loadMotionList();
+					let currentMotion = this.clickMotions[ Math.floor( Math.random() * this.clickMotions.length ) ];
 					this.startAnimation( currentMotion, "base" );
 				}
 			}
 			this.isClick = false;
 			this.model.inDrag = false;
 		}
-		
-        //console.log(this.l2d.models[this.role])
-        
-        
-        
-        setTimeout(	this.loadAudio
-		
-		, 2000 )
-	
-            
-            
-            
+
+		//console.log(this.l2d.models[this.role])
+
+
+
+
+
+
+
 		console.log( "Init finished." )
 	}
-	
-	
-	
-	
-	loadAudio(){
-	    
-	  
-    	let bodyMotions =Array.from(this.l2d.models[this.role].motions,x=>x[0]);
-    	console.log('AudioLoad')
-        console.log(bodyMotions)
-		   for(let motionId  in  bodyMotions){
-            let m = this.l2d.models[this.role].motions.get( bodyMotions[motionId] );
-           
-         	if(m.sound){
-         	let audio = new Audio( this.basePath+this.role+'/'+m.sound);
-         	audio.load()
-         	this.audio[bodyMotions[motionId] ]=audio;
-         	}
-            }
-            
-            
 
-			
+	//读入动作列表
+	loadMotionList() {
+
+		this.bodyMotions = Array.from( this.model.motions, x => x[ 0 ] );
+		this.idleMotions = this.bodyMotions.filter( ( x ) => {
+			return x.toLowerCase().indexOf( 'idle' ) != -1
+		} )
+		this.clickMotions = this.bodyMotions.filter( ( x ) => {
+			return x.toLowerCase().indexOf( 'idle' ) == -1
+		} )
+		//console.log( this.bodyMotions )
+		//console.log( this.idleMotions )
+		//console.log( this.clickMotions )
+	}
+	//读入音频列表
+	loadAudio() {
+		this.loadMotionList();
+		//console.log( 'AudioLoad' )
+		//console.log( this )
+		//console.log( this.bodyMotions )
+		for ( let motionId in this.bodyMotions ) {
+			let m = this.l2d.models[ this.role ].motions.get( this.bodyMotions[ motionId ] );
+
+			if ( m.sound ) {
+				let audio = new Audio( this.basePath + this.role + '/' + m.sound );
+				audio.load()
+				this.audio[ this.bodyMotions[ motionId ] ] = audio;
+			}
+		}
 	}
 
 	changeCanvas( model ) {
@@ -262,30 +273,68 @@ this.app.view.addEventListener.ontouchcancel = ( event ) => {
 
 		this.app.stage.addChild( this.model );
 		this.app.stage.addChild( this.model.masks );
-
-            		
 		window.onresize();
+		this.loadAudio()
 	}
 
+
+	startAnimation( motionId, layerId ) {
+
+		console.log( "startAnimation" )
+		if ( !this.model ) {
+			return;
+		}
+		console.log( "Animation:", motionId, layerId )
+
+
+
+		let m = this.model.motions.get( motionId );
+		// console.log("motionId:", m)
+
+		if ( !m ) {
+			return;
+		}
+
+		var l = this.model.animator.getLayer( layerId );
+		// console.log("layerId:", l)
+		if ( !l ) {
+			return;
+		}
+		l.play( m );
+		if ( JSON.stringify( this.audio ) == '{}' ) {
+			this.loadAudio()
+		}
+		for ( let u in this.audio ) {
+			this.audio[ u ].pause();
+			this.audio[ u ].currentTime=0;
+		}
+		//console.log(this.audio[motionId])
+		if ( this.audio[ motionId ] ) this.audio[ motionId ].play();
+
+	}
+	
+	//图形界面每刷新
 	onUpdate( delta ) {
-		//console.log( "onUpdate" )
+		//console.log( this )
 		let deltaTime = 0.016 * delta;
 
 		if ( !this.animator.isPlaying ) {
-			window.idle = this.motions.get( "idle" );
-			this.animator.getLayer( "base" )
-				.play( idle );
+			thisViewer.startAnimation( thisViewer.idleMotions[ Math.floor( Math.random() * thisViewer.idleMotions.length ) ], 'base' )
+
+			//window.idle = this.motions.get( currentMotion );
+			//this.animator.getLayer( "base" ).play( idle );
 		}
 		this._animator.updateAndEvaluate( deltaTime );
 
 		if ( this.inDrag ) {
-			this.addParameterValueById( "ParamAngleX", this.pointerX * 30 );
-			this.addParameterValueById( "ParamAngleY", -this.pointerY * 30 );
+			this.addParameterValueById( "ParamAngleX", this.pointerX * 30 * .8 );
+			this.addParameterValueById( "ParamAngleY", -this.pointerY * 30 * .8 );
 			this.addParameterValueById( "ParamBodyAngleX", this.pointerX * 10 );
 			this.addParameterValueById( "ParamBodyAngleY", -this.pointerY * 10 );
-			this.addParameterValueById( "ParamEyeBallX", this.pointerX );
-			this.addParameterValueById( "ParamEyeBallY", -this.pointerY );
+			this.addParameterValueById( "ParamEyeBallX", this.pointerX * .6 );
+			this.addParameterValueById( "ParamEyeBallY", -this.pointerY * .6 );
 		}
+
 
 		if ( this._physicsRig ) {
 			this._physicsRig.updateAndEvaluate( deltaTime );
@@ -320,56 +369,18 @@ this.app.view.addEventListener.ontouchcancel = ( event ) => {
 		this._coreModel.drawables.resetDynamicFlags();
 	}
 
-	startAnimation( motionId, layerId ) {
-		
-	console.log( "startAnimation" )
-		if ( !this.model ) {
-			return;
-		}
-		console.log( "Animation:", motionId, layerId )
 
-		
-		
-		let m = this.model.motions.get( motionId );
-		// console.log("motionId:", m)
 
-		if ( !m ) {
-			return;
-		}
-
-		var l = this.model.animator.getLayer( layerId );
-		// console.log("layerId:", l)
-		if ( !l ) {
-			return;
-		}
-		l.play( m );
-		/*setTimeout(()=>{
-
-		l.play( idle );	
-			
-		}
-		
-		, 1000 *m.duration+100)*/
-		
-
-		//onsole.log(this.audio,motionId)
-		if(JSON.stringify(this.audio)=='{}'){this.loadAudio()}
-		for(let u in this.audio){
-		     this.audio[u].pause();
-		}
-		//console.log(this.audio[motionId])
-		this.audio[motionId].play();
-	}
 
 	isHit( id, posX, posY ) {
-		
-	console.log( "isHit" )
+
+		console.log( "isHit" )
 		if ( !this.model ) {
 			return false;
 		}
 
 		let m = this.model.getModelMeshById( id );
-		console.log(  )
+		console.log()
 		if ( !m ) {
 			return false;
 		}

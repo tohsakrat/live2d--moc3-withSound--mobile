@@ -12,7 +12,7 @@ class L2D {
 		//console.log(this.loader)
     }
     
-    setPhysics3Json (value) {
+		setPhysics3Json (value) {
         if (!this.physicsRigBuilder) {
             this.physicsRigBuilder = new LIVE2DCUBISMFRAMEWORK.PhysicsRigBuilder();
         }
@@ -30,6 +30,7 @@ class L2D {
             let textureCount = 0;
             let motionNames = new Array();
             let modelNames = new Array();
+            let expressionNames = new Array();
 
             //if (!modelNames.includes(name+'_model')){
                 this.loader.add(name+'_model', modelDir+modelPath, { xhrType: PIXI.loaders.Resource.XHR_RESPONSE_TYPE.JSON });
@@ -38,7 +39,7 @@ class L2D {
 
             this.loader.load((loader, resources) => {
                 let model3Obj = resources[name+'_model'].data;
-                console.log(model3Obj);
+                //console.log(model3Obj);
                 if (typeof(model3Obj['FileReferences']['Moc']) !== "undefined") {
                     loader.add(name+'_moc', modelDir+model3Obj['FileReferences']['Moc'], { xhrType: PIXI.loaders.Resource.XHR_RESPONSE_TYPE.BUFFER });
                 }
@@ -57,7 +58,11 @@ class L2D {
                 if (typeof(model3Obj['FileReferences']['Motions']) !== "undefined") {
                     for (let group in model3Obj['FileReferences']['Motions']) {
                         model3Obj['FileReferences']['Motions'][group].forEach((element) => {
-                           if(element['File']){ let motionName = element['File'].split('/').pop().split('.').shift();
+                           if(element['File']){ 
+						   let motionName = element['File'].split('/').pop().split('.').shift()+String(element['Name'])+group+String(element['Expression']);
+						   //console.log(name+'_'+motionName)
+						   //console.log(modelDir+element['File'])
+						   
                             if (!motionNames.includes(name+'_'+motionName)){
                                 loader.add(name+'_'+motionName, modelDir+element['File'], { xhrType: PIXI.loaders.Resource.XHR_RESPONSE_TYPE.JSON });
                                 motionNames.push(name+'_'+motionName);
@@ -66,14 +71,25 @@ class L2D {
                                 loader.add(n, modelDir+element['File'], { xhrType: PIXI.loaders.Resource.XHR_RESPONSE_TYPE.JSON });
                                 motionNames.push(name+'_'+motionName);
 						   }
-								loader.resources[name+'_'+motionName].sound=element.Sound;
-								loader.resources[name+'_'+motionName].text=element.Text;
-						   console.log(loader)
+								if(element.Sound)loader.resources[name+'_'+motionName].sound=element.Sound;
+								if(element.Text)loader.resources[name+'_'+motionName].text=element.Text;
+								if(element.Expression)loader.resources[name+'_'+motionName].Expression=element.Expression;
+						   //console.log(loader)
 						   }
                         });
                     }
                 }
-
+                if (typeof(model3Obj['FileReferences']['Expressions']) !== "undefined") {
+                    for (let expressionID in model3Obj['FileReferences']['Expressions']) {
+					let name=model3Obj['FileReferences']['Expressions'][expressionID]['Name']
+					loader.add(name, modelDir+model3Obj['FileReferences']['Expressions'][expressionID]['File'], { xhrType: PIXI.loaders.Resource.XHR_RESPONSE_TYPE.JSON });
+					expressionNames.push(name);
+					
+                    }
+                }
+				
+				
+				
                 let groups = null;
                 if (typeof(model3Obj['Groups'] !== "undefined")) {
                     groups = LIVE2DCUBISMFRAMEWORK.Groups.fromModel3Json(model3Obj);
@@ -98,14 +114,27 @@ class L2D {
 
                     let motions = new Map();
                     motionNames.forEach((element) => {
-                        let n = element.split(name+'_').pop();
+                        let n = element//.split(name+'_').pop();
 						var v=LIVE2DCUBISMFRAMEWORK.Animation.fromMotion3Json(r[element].data)
-						v.sound=r[element].sound;
-						v.text=r[element].text;
+						if(r[element].sound)v.sound=r[element].sound;
+						if(r[element].text)v.text=r[element].text;
+						//console.log(r[element])
+						//console.log(v)
+						if(r[element].Expression)v.Expression=r[element].Expression;
+						//console.log(n);
                         motions.set(n,v );
-						console.log('motions')
-						console.log(motions)
+						//console.log('motions')
+						//console.log(motions)
                     });
+
+                    let expressions = new Map();
+                    expressionNames.forEach((element) => {
+						
+						expressions.set(element,r[element].data)
+						//console.log('motions')
+						//console.log(motions)
+                    });
+
 
                     let model = null;
                     let coreModel = Live2DCubismCore.Model.fromMoc(moc);
@@ -126,7 +155,94 @@ class L2D {
                     let userData = null;
 
                     model = LIVE2DCUBISMPIXI.Model._create(coreModel, textures, animator, physicsRig, userData, groups);
-                    model.motions = motions;
+                    
+					/*预处理一些不兼容的动作*/
+					
+					//首字母大写
+					window.titleCase=function(str) {
+
+						let newStr = str.slice(0,1).toUpperCase() +str.slice(1).toLowerCase();
+
+						return newStr;
+
+					}
+					
+					//遍历所有参数
+					window.ReplaceParameterId=function(a) {
+						for (let k in a) {
+						if(k=='targetId'){
+						if(a[k].indexOf('_')!=-1){
+							//console.log(a[k].indexOf('_')!=-1)
+							a[k]=a[k].toLowerCase();
+							let b=a[k].split('_');	b=b.map((x)=>titleCase(x))
+							//console.log(b)
+							a[k]=b.join('')
+						}
+						
+						}else{
+						
+							if(typeof(a[k])!='string')ReplaceParameterId(a[k])}
+						}
+						return a;
+					}
+					//预处理
+                    motionNames.forEach((element) => {
+						let motion = motions.get(element);
+						//console.log(motion)
+						motion.parameterTracks = motion.parameterTracks.map(
+								(x)=>{
+									//console.log(x)
+									x=ReplaceParameterId(x);
+									//console.log(x)
+									return x;
+								}
+								)
+							//console.log(element);
+							//console.log(motion);
+							motions.set(element,motion);
+							//console.log(motions.get(element));
+							})
+					
+					/*读取表情并写入动作*/
+                    motionNames.forEach((element) => {
+						let motion = motions.get(element);
+						//console.log(motion)
+						if (motion.Expression){
+							//onsole.log(motion.Expression)
+							let parameterBlenders=expressions.get(motion.Expression).Parameters;
+							parameterBlenders.forEach((item)=>{
+								/*加算表情*/
+								if(item.Blend=='Add'){
+									motion.parameterTracks = motion.parameterTracks.map(
+									(x)=>{
+										//console.log('x')
+										//console.log(x)
+										//console.log('item')
+										//console.log(item)
+										//console.log(item)
+										if(x.targetId!=item.Id){return x;}else{
+									
+										let y=x;
+										y.points = y.points.map((z)=>{
+											z.value = z.value+item.Value;
+											return z;
+											})
+											
+										return y;
+										}
+									}
+									)
+								}
+								
+							})
+							//console.log(expression)
+						}
+                    });
+					
+					
+					
+					model.motions = motions;
+					model.expressions = expressions;
                     this.models[name] = model;
 
                     v.changeCanvas(model);
