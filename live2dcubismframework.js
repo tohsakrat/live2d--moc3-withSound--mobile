@@ -20,15 +20,18 @@ var LIVE2DCUBISMFRAMEWORK;
     var BuiltinAnimationSegmentEvaluators = (function () {
         function BuiltinAnimationSegmentEvaluators() {
         }
+		//插值算法
         BuiltinAnimationSegmentEvaluators.lerp = function (a, b, t) {
             return new AnimationPoint((a.time + ((b.time - a.time) * t)), (a.value + ((b.value - a.value) * t)));
         };
+		
         BuiltinAnimationSegmentEvaluators.LINEAR = function (points, offset, time) {
             var p0 = points[offset + 0];
             var p1 = points[offset + 1];
             var t = (time - p0.time) / (p1.time - p0.time);
             return (p0.value + ((p1.value - p0.value) * t));
         };
+		
         BuiltinAnimationSegmentEvaluators.BEZIER = function (points, offset, time) {
             var t = (time - points[offset + 0].time) / (points[offset + 3].time - points[offset].time);
             var p01 = BuiltinAnimationSegmentEvaluators.lerp(points[offset + 0], points[offset + 1], t);
@@ -38,12 +41,15 @@ var LIVE2DCUBISMFRAMEWORK;
             var p123 = BuiltinAnimationSegmentEvaluators.lerp(p12, p23, t);
             return BuiltinAnimationSegmentEvaluators.lerp(p012, p123, t).value;
         };
+		
         BuiltinAnimationSegmentEvaluators.STEPPED = function (points, offset, time) {
             return points[offset + 0].value;
         };
+		
         BuiltinAnimationSegmentEvaluators.INVERSE_STEPPED = function (points, offset, time) {
             return points[offset + 1].value;
         };
+		
         return BuiltinAnimationSegmentEvaluators;
     }());
     LIVE2DCUBISMFRAMEWORK.BuiltinAnimationSegmentEvaluators = BuiltinAnimationSegmentEvaluators;
@@ -93,6 +99,7 @@ var LIVE2DCUBISMFRAMEWORK;
                 });
                 console.assert(this.userDataBodys.length === this.userDataCount);
             }
+			
             motion3Json['Curves'].forEach(function (c) {
                 var s = c['Segments'];
                 var points = new Array();
@@ -249,7 +256,7 @@ var LIVE2DCUBISMFRAMEWORK;
         return Animation;
     }());
     LIVE2DCUBISMFRAMEWORK.Animation = Animation;
-    var BuiltinCrossfadeWeighters = (function () {
+    var BuiltinCrossfadeWeighters = (function () {//看起来应该是和淡入淡出有关的函数
         function BuiltinCrossfadeWeighters() {
         }
         BuiltinCrossfadeWeighters.LINEAR = function (time, duration) {
@@ -308,6 +315,7 @@ var LIVE2DCUBISMFRAMEWORK;
             configurable: true
         });
         AnimationLayer.prototype.play = function (animation, fadeDuration) {
+			//console.log(fadeDuration)
             if (fadeDuration === void 0) { fadeDuration = 0; }
             if (this._animation && fadeDuration > 0) {
                 this._goalAnimation = animation;
@@ -339,11 +347,12 @@ var LIVE2DCUBISMFRAMEWORK;
             this._goalTime += deltaTime;
             this._fadeTime += deltaTime;
             if (this._animation == null || (!this._animation.loop && this._time > this._animation.duration)) {
-                this.stop();
+                this.stop();console.log('stopped')
                 this._animation = null;
             }
         };
         AnimationLayer.prototype._evaluate = function (target, stackFlags) {
+			
             if (this._animation == null) {
                 return;
             }
@@ -355,12 +364,15 @@ var LIVE2DCUBISMFRAMEWORK;
                 : weight;
             this._animation.evaluate(this._time, animationWeight, this.blend, target, stackFlags, this.groups);
             if (this._goalAnimation != null) {
+				
                 animationWeight = 1 - (weight * this.weightCrossfade(this._fadeTime, this._fadeDuration));
                 this._goalAnimation.evaluate(this._goalTime, animationWeight, this.blend, target, stackFlags, this.groups);
                 if (this._fadeTime > this._fadeDuration) {
+					console.log('evaluate animator')
                     this._animation = this._goalAnimation;
                     this._time = this._goalTime;
                     this._goalAnimation = null;
+                    //this._goalTime = NaN;//已修改，清零Goaltime
                 }
             }
         };
@@ -403,6 +415,7 @@ var LIVE2DCUBISMFRAMEWORK;
             layer.weight = weight;
             layer.groups = this.groups;
             this._layers.set(name, layer);
+			return layer;
         };
         Animator.prototype.getLayer = function (name) {
             return this._layers.has(name)

@@ -3,6 +3,7 @@ class Viewer {
 		let width = config.width || 800
 		let height = config.height || 600
 		let role = config.role
+		
 		let left = config.left //|| '0px'
 		let top = config.top //|| '0px'
 		let right = config.right //|| '0px'
@@ -30,6 +31,8 @@ class Viewer {
 		} );
 		this.canvas.html( this.app.view );
 		this.canvas[ 0 ].style.position = 'fixed'
+		
+		this.currentMotion = ''
 		window.thisViewer = this;
 		if ( bg ) {
 			this.canvas[ 0 ].style.background = `url("${bg}")`
@@ -121,11 +124,17 @@ class Viewer {
 				} else if ( this.isHit( 'TouchSpecial', event.offsetX, event.offsetY ) ) {
 					this.startAnimation( "touch_special", "base" );
 				} else {
-
-
 					this.loadMotionList();
-					let currentMotion = this.clickMotions[ Math.floor( Math.random() * this.clickMotions.length ) ];
-					this.startAnimation( currentMotion, "base" );
+					while(1){
+						let r;
+						r= this.clickMotions[ Math.floor( Math.random() * this.clickMotions.length ) ];
+						if(r!=thisViewer.currentMotion){
+							thisViewer.currentMotion=r;
+							break
+							
+						}
+					 }
+					this.startAnimation( thisViewer.currentMotion, "base" );
 				}
 			}
 
@@ -169,14 +178,25 @@ class Viewer {
 
 			if ( this.isClick ) {
 				if ( this.isHit( 'face', event.changedTouches[ 0 ].offsetX, event.changedTouches[ 0 ].offsetY ) ) {
-					this.startAnimation( "touch_head", "base" );
+					this.startAnimation( "touch_head", "special" );
 				} else if ( this.isHit( 'TouchSpecial', event.changedTouches[ 0 ].offsetX, event.changedTouches[ 0 ].offsetY ) ) {
-					this.startAnimation( "touch_special", "base" );
+					this.startAnimation( "touch_special", "special" );
 				} else {
 					this.loadMotionList;
 					console.log( this.bodyMotions )
-					let currentMotion = this.clickMotions[ Math.floor( Math.random() * this.clickMotions.length ) ];
-					this.startAnimation( currentMotion, "base" );
+					
+					while(1){
+						let r;
+						r= this.clickMotions[ Math.floor( Math.random() * this.clickMotions.length ) ];
+						if(r!=currentMotion){
+							currentMotion=r;
+							break
+							
+						}
+					 }
+					
+					
+					this.startAnimation( currentMotion, "special" );
 				}
 			}
 			this.isClick = false;
@@ -196,13 +216,13 @@ class Viewer {
 
 			if ( this.isClick ) {
 				if ( this.isHit( 'face', event.changedTouches[ 0 ].offsetX, event.changedTouches[ 0 ].offsetY ) ) {
-					this.startAnimation( "touch_head", "base" );
+					this.startAnimation( "touch_head", "special" );
 				} else if ( this.isHit( 'TouchSpecial', event.changedTouches[ 0 ].offsetX, event.changedTouches[ 0 ].offsetY ) ) {
-					this.startAnimation( "touch_special", "base" );
+					this.startAnimation( "touch_special", "special" );
 				} else {
 					this.loadMotionList();
 					let currentMotion = this.clickMotions[ Math.floor( Math.random() * this.clickMotions.length ) ];
-					this.startAnimation( currentMotion, "base" );
+					this.startAnimation( currentMotion, "special" );
 				}
 			}
 			this.isClick = false;
@@ -243,14 +263,15 @@ class Viewer {
 		for ( let motionId in this.bodyMotions ) {
 			let m = this.l2d.models[ this.role ].motions.get( this.bodyMotions[ motionId ] );
 
-			if ( m.sound ) {
-				let audio = new Audio( this.basePath + this.role + '/' + m.sound );
+			if ( m.Sound ) {
+				let audio = new Audio( this.basePath + this.role + '/' + m.Sound );
 				audio.load()
 				this.audio[ this.bodyMotions[ motionId ] ] = audio;
 			}
 		}
 	}
 
+	//意味不明
 	changeCanvas( model ) {
 		console.log( "changeCanvas" )
 		this.app.stage.removeChildren();
@@ -269,7 +290,9 @@ class Viewer {
 		this.model = model;
 		this.model.update = this.onUpdate; // HACK: use hacked update fn for drag support
 		// console.log(this.model);
-		this.model.animator.addLayer( "base", LIVE2DCUBISMFRAMEWORK.BuiltinAnimationBlenders.OVERRIDE, 1 );
+		window.baseLayer = this.model.animator.addLayer( "base", LIVE2DCUBISMFRAMEWORK.BuiltinAnimationBlenders.OVERRIDE, 1 );
+		window.specialLayer = this.model.animator.addLayer( "special", LIVE2DCUBISMFRAMEWORK.BuiltinAnimationBlenders.OVERRIDE, 10 );//覆盖
+		window.expressionLayer = this.model.animator.addLayer( "expression", LIVE2DCUBISMFRAMEWORK.BuiltinAnimationBlenders.ADD, 1 );//加算
 
 		this.app.stage.addChild( this.model );
 		this.app.stage.addChild( this.model.masks );
@@ -278,19 +301,17 @@ class Viewer {
 	}
 
 
-	startAnimation( motionId, layerId ) {
+	startAnimation( motionId, layerId ,fadeTime) {
 
 		console.log( "startAnimation" )
+		thisViewer.currentMotion=motionId;
 		if ( !this.model ) {
 			return;
 		}
 		console.log( "Animation:", motionId, layerId )
-
-
-
 		let m = this.model.motions.get( motionId );
-		// console.log("motionId:", m)
-
+		
+		//console.log(m)
 		if ( !m ) {
 			return;
 		}
@@ -300,7 +321,9 @@ class Viewer {
 		if ( !l ) {
 			return;
 		}
-		l.play( m );
+		
+		l.play( m )//第二个参数为淡入淡出，但根据测试，单位秒，效果非常不好。还是用手写插值的办法淡入淡出。
+		//console.log(l)
 		if ( JSON.stringify( this.audio ) == '{}' ) {
 			this.loadAudio()
 		}
@@ -315,28 +338,44 @@ class Viewer {
 	
 	//图形界面每刷新
 	onUpdate( delta ) {
+		
+		this.addParameterValueById( "ParamBreath", 10 );//试试
 		//console.log( this )
+		
 		let deltaTime = 0.016 * delta;
 
+		let fadeTime=.5;
 		if ( !this.animator.isPlaying ) {
-			thisViewer.startAnimation( thisViewer.idleMotions[ Math.floor( Math.random() * thisViewer.idleMotions.length ) ], 'base' )
-
-			//window.idle = this.motions.get( currentMotion );
-			//this.animator.getLayer( "base" ).play( idle );
+		
+		//if ( this.animator.isPlaying){console.log('updated');console.log(baseLayer._animation.duration - baseLayer._time);console.log(baseLayer)}
+		//if ( !this.animator.isPlaying){console.log('timeout');console.log(baseLayer)}
+			while(1){
+				let r;
+				r= thisViewer.idleMotions[ Math.floor( Math.random() * thisViewer.idleMotions.length ) ];
+				if(r!=thisViewer.currentMotion){
+					thisViewer.currentMotion=r;
+						break
+						}
+					 }
+			thisViewer.startAnimation( thisViewer.currentMotion, 'base', fadeTime )
 		}
+		
 		this._animator.updateAndEvaluate( deltaTime );
 
 		if ( this.inDrag ) {
+			
 			this.addParameterValueById( "ParamAngleX", this.pointerX * 30 * .8 );
 			this.addParameterValueById( "ParamAngleY", -this.pointerY * 30 * .8 );
 			this.addParameterValueById( "ParamBodyAngleX", this.pointerX * 10 );
 			this.addParameterValueById( "ParamBodyAngleY", -this.pointerY * 10 );
 			this.addParameterValueById( "ParamEyeBallX", this.pointerX * .6 );
 			this.addParameterValueById( "ParamEyeBallY", -this.pointerY * .6 );
+			//console.log(this.addParameterValueById)
 		}
 
 
 		if ( this._physicsRig ) {
+			
 			this._physicsRig.updateAndEvaluate( deltaTime );
 		}
 

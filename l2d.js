@@ -1,7 +1,7 @@
-// const PIXI = require('./l2d/pixi.min.js')
-// const LIVE2DCUBISMFRAMEWORK = require('./live2dcubismframework.js')
+//处理文件读取
 
-// import PIXI from 
+
+
 class L2D {
     constructor (basePath) {
         this.basePath = basePath;
@@ -17,6 +17,7 @@ class L2D {
             this.physicsRigBuilder = new LIVE2DCUBISMFRAMEWORK.PhysicsRigBuilder();
         }
         this.physicsRigBuilder.setPhysics3Json(value);
+
 
         return this;
     }
@@ -58,23 +59,26 @@ class L2D {
                 if (typeof(model3Obj['FileReferences']['Motions']) !== "undefined") {
                     for (let group in model3Obj['FileReferences']['Motions']) {
                         model3Obj['FileReferences']['Motions'][group].forEach((element) => {
+							
+							//有资源才读取，没资源拉倒
                            if(element['File']){ 
-						   let motionName = element['File'].split('/').pop().split('.').shift()+String(element['Name'])+group+String(element['Expression']);
-						   //console.log(name+'_'+motionName)
-						   //console.log(modelDir+element['File'])
 						   
-                            if (!motionNames.includes(name+'_'+motionName)){
-                                loader.add(name+'_'+motionName, modelDir+element['File'], { xhrType: PIXI.loaders.Resource.XHR_RESPONSE_TYPE.JSON });
-                                motionNames.push(name+'_'+motionName);
-                            } else {
-                                var n = name+'_'+motionName+String(Date.now());
-                                loader.add(n, modelDir+element['File'], { xhrType: PIXI.loaders.Resource.XHR_RESPONSE_TYPE.JSON });
-                                motionNames.push(name+'_'+motionName);
-						   }
-								if(element.Sound)loader.resources[name+'_'+motionName].sound=element.Sound;
-								if(element.Text)loader.resources[name+'_'+motionName].text=element.Text;
-								if(element.Expression)loader.resources[name+'_'+motionName].Expression=element.Expression;
-						   //console.log(loader)
+								let motionName = element['File'].split('/').pop().split('.').shift()+String(element['Name'])+group+String(element['Expression']);
+								let n = name+'_'+motionName;
+								if (!motionNames.includes(name+'_'+motionName)){
+									loader.add(n, modelDir+element['File'], { xhrType: PIXI.loaders.Resource.XHR_RESPONSE_TYPE.JSON });
+									motionNames.push(name+'_'+motionName);
+								} else {
+									loader.add(n+String(Date.now()), modelDir+element['File'], { xhrType: PIXI.loaders.Resource.XHR_RESPONSE_TYPE.JSON });
+									motionNames.push(name+'_'+motionName);
+							   }
+							   for(let item in element){
+							   if(!loader.resources[name+'_'+motionName][item])loader.resources[name+'_'+motionName][item]=element[item]
+							}
+							   
+							   
+							   
+							   
 						   }
                         });
                     }
@@ -116,15 +120,10 @@ class L2D {
                     motionNames.forEach((element) => {
                         let n = element//.split(name+'_').pop();
 						var v=LIVE2DCUBISMFRAMEWORK.Animation.fromMotion3Json(r[element].data)
-						if(r[element].sound)v.sound=r[element].sound;
-						if(r[element].text)v.text=r[element].text;
-						//console.log(r[element])
-						//console.log(v)
-						if(r[element].Expression)v.Expression=r[element].Expression;
-						//console.log(n);
+						for(let item in r[element]){
+							if(!v[item])v[item]=r[element][item]
+						}
                         motions.set(n,v );
-						//console.log('motions')
-						//console.log(motions)
                     });
 
                     let expressions = new Map();
@@ -183,46 +182,71 @@ class L2D {
 						
 							if(typeof(a[k])!='string')ReplaceParameterId(a[k])}
 						}
+						
 						return a;
 					}
-					//预处理
+					
+					//预处理其他版本模型的paramID，web端unity版格式通用，请根据自己的模型来。
                     motionNames.forEach((element) => {
 						let motion = motions.get(element);
 						//console.log(motion)
 						motion.parameterTracks = motion.parameterTracks.map(
 								(x)=>{
-									//console.log(x)
 									x=ReplaceParameterId(x);
-									//console.log(x)
 									return x;
 								}
 								)
-							//console.log(element);
-							//console.log(motion);
 							motions.set(element,motion);
-							//console.log(motions.get(element));
 							})
 					
-					/*读取表情并写入动作*/
+					/*读取表情，并写入动作/淡入淡出*/
                     motionNames.forEach((element) => {
 						let motion = motions.get(element);
-						//console.log(motion)
 						if (motion.Expression){
-							//onsole.log(motion.Expression)
 							let parameterBlenders=expressions.get(motion.Expression).Parameters;
 							parameterBlenders.forEach((item)=>{
+								
+								
+
+								
+								
+								
 								/*加算表情*/
 								if(item.Blend=='Add'){
 									motion.parameterTracks = motion.parameterTracks.map(
 									(x)=>{
-										//console.log('x')
-										//console.log(x)
-										//console.log('item')
-										//console.log(item)
-										//console.log(item)
 										if(x.targetId!=item.Id){return x;}else{
-									
 										let y=x;
+										
+										//补帧，避免新加表情太不自然
+										if(y.points.length<5){
+											let Track=[];
+											for(let i=0;i<20;i++){
+												let point=new LIVE2DCUBISMFRAMEWORK.AnimationPoint;
+												point.time=i*motion.duration/20
+												Track[i]=point;
+											}
+											let j=0;
+											//console.log(x)
+											for(let i=0;i<20;i++){
+												if(x.points[j+1]){Track[i].value=x.points[j].value+(x.points[j+1].value - x.points[j].value)*((x.points[j+1].time - Track[i].time)/(x.points[j+1].time - x.points[j].time))
+												if(Track[i].time>x.points[j].time)j++;}else{Track[i].value=x.points[j].value}
+												
+											}
+											console.log(motion.name, item.Id)
+											////console.log(Track)
+											//console.log(y.points)
+											y.points=Track
+											
+											if((y.segments[y.segments.length-1].offset==y.points.length-4) && (y.segments.length-1==0))y.segments[y.segments.length-1].offset=0;
+											
+											if(y.segments[y.segments.length-1].offset != y.points.length-2 ){
+												y.segments[y.segments.length]=new LIVE2DCUBISMFRAMEWORK.AnimationSegment;
+												y.segments[y.segments.length-1].evaluate=LIVE2DCUBISMFRAMEWORK.BuiltinAnimationSegmentEvaluators.LINEAR;//线性插值
+												y.segments[y.segments.length-1].offset=y.points.length-2
+											}
+										}
+										
 										y.points = y.points.map((z)=>{
 											z.value = z.value+item.Value;
 											return z;
@@ -233,17 +257,48 @@ class L2D {
 									}
 									)
 								}
+								/*其他类型的表情算法可以加在这里*/
 								
 							})
 							//console.log(expression)
 						}
+						
+									
+									
+					//淡入淡出	
+					let fadeInTime = (motion.FadeIn)&&(motion.FadeIn>0)? motion.FadeIn/1000:0;//淡入淡出时间，单位秒
+					let fadeOutTime = (motion.FadeOut)&&(motion.FadeOut>0)? motion.FadeOut/1000:0;//淡入淡出时间，单位秒	
+					if(fadeInTime>motion.duration*.1)fadeInTime=motion.duration*.1//限制一些淡入淡出设置得太长的动作，可以删掉
+					motion.parameterTracks = motion.parameterTracks.map(
+					(x)=>{
+						let y=x;
+						if(y.points.length>=20){
+							y.points = y.points.map((z)=>{
+								
+								if( z.time < fadeInTime)z.value=(z.time/fadeInTime)*z.value;
+								
+								if( motion.duration - z.time < fadeOutTime){//避免在一些duration不太准的情况出现负数
+									let w=motion.duration-z.time;
+									if(w<=0)w=0;
+									z.value=w*z.value;
+									}
+									
+								return z;
+								})
+								
+							}
+							return y;
+						}
+					)
+						
+						
+						
+						
+						
                     });
-					
-					
-					
-					model.motions = motions;
-					model.expressions = expressions;
-                    this.models[name] = model;
+						model.motions = motions;
+						model.expressions = expressions;
+						this.models[name] = model;
 
                     v.changeCanvas(model);
                 });

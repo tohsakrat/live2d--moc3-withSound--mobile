@@ -189,6 +189,8 @@ var LIVE2DCUBISMPIXI;
             }
             return null;
         };
+		
+		//通过
         Model.prototype.addParameterValueById = function (id, value) {
             var p = this._coreModel.parameters.ids.indexOf(id);
             if (p == -1) {
