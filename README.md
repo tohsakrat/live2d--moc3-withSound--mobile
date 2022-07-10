@@ -23,8 +23,8 @@ main.js中
 ![image](https://user-images.githubusercontent.com/45536831/175789500-2224e319-c21f-4350-923d-68b6a182287a.png)
 
 ## 示例
-[达达利亚](https://gzszd.xyz/assets/l2d/Tartaglia.html)
-[钟离](https://gzszd.xyz/assets/l2d/Zhongli.html)
+[达达利亚](https://gzszd.xyz/assets/l2d-4/Tartaglia.html)
+[钟离](https://gzszd.xyz/assets/l2d-4/Zhongli.html)
 
 作者[来人啊给我退下](https://space.bilibili.com/13975947)
 
